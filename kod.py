@@ -116,7 +116,7 @@ class Location:
     def get_current_level():
         return f"Текущий уровень: {Location.current_level}"
 
-    # Класс Персонаж (вложен в Location)
+    # Класс Персонаж
     class Character(GameObject):
         def __init__(self, appearance, location):
             super().__init__(appearance, SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2)  # Устанавливаем начальные координаты
@@ -207,7 +207,7 @@ class Location:
                 return self.score == other.score
             return False
 
-        # Класс Пуля (вложен в Character)
+        # Класс Пуля
         class Bullet(GameObject):
             def __init__(self, x, y, target_x, target_y):
                 self.x = x
@@ -256,7 +256,7 @@ class Location:
         def update(self):
             pass  # Обновление платформы (можно добавить позже)
 
-    # Класс Монстр (вложен в Location)
+    # Класс Монстр
     class Monster(GameObject):
         def __init__(self, appearance, x, y):
             self.appearance = appearance
