@@ -1,15 +1,22 @@
 import pygame
 import random
+import logging  # модуль логирования
 
-# Создание пользовательского исключения
-class CustomError(Exception):
-    """Основное пользовательское исключение."""
-    pass
+# Настройка логирования
+logging.basicConfig(
+    level=logging.INFO,  # Уровень логирования (INFO, DEBUG, WARNING, ERROR, CRITICAL)
+    format='%(asctime)s - %(levelname)s - %(message)s',  # Формат сообщений
+    filename='game.log',  # Файл для записи логов
+    filemode='w'  # Режим записи ('w' - перезапись, 'a' - добавление)
+)
 
-class SpecificError(CustomError):
-    """Дочернее пользовательское исключение."""
-    pass
+# Цвета
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+BLUE = (0, 0, 255)
+RED = (255, 0, 0)
 
+# Инициализация Pygame
 pygame.init()
 
 SCREEN_WIDTH = 400
@@ -20,53 +27,106 @@ pygame.display.set_caption("Doodle Jump")
 # Шрифт для текста
 font = pygame.font.Font(None, 36)
 
-# Функция для отрисовки текста
-def draw_text(screen, text, x, y):
-    """
-    Отрисовывает текст на экране.
-    :param screen: Экран pygame.
-    :param text: Текст для отображения.
-    :param x: Координата X.
-    :param y: Координата Y.
-    """
-    text_surface = font.render(text, True, (255, 255, 255))  # Белый цвет текста
-    screen.blit(text_surface, (x, y))
+# Класс для кнопок
+class Button:
+    def __init__(self, text, x, y, width, height, color, hover_color):
+        self.text = text
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+        self.color = color
+        self.hover_color = hover_color
+        self.is_hovered = False
 
-# Базовый класс с защищенными атрибутами
-class BaseClass:
-    def __init__(self, name):
-        self._name = name  # Защищенный атрибут
-        self._protected_value = 42  # Защищенный атрибут
+    def draw(self, screen):
+        """Отрисовка кнопки."""
+        color = self.hover_color if self.is_hovered else self.color
+        pygame.draw.rect(screen, color, (self.x, self.y, self.width, self.height))
+        text_surface = font.render(self.text, True, BLACK)
+        text_rect = text_surface.get_rect(center=(self.x + self.width // 2, self.y + self.height // 2))
+        screen.blit(text_surface, text_rect)
 
-    def base_method(self):
-        print(f"Это метод базового класса {self._name}")
+    def is_clicked(self, pos):
+        """Проверка, была ли кнопка нажата."""
+        return (self.x <= pos[0] <= self.x + self.width and
+                self.y <= pos[1] <= self.y + self.height)
 
-    def common_method(self):
-        print(f"Это общий метод из базового класса {self._name}. Защищенное значение: {self._protected_value}")
+    def check_hover(self, pos):
+        """Проверка, находится ли курсор над кнопкой."""
+        self.is_hovered = (self.x <= pos[0] <= self.x + self.width and
+                           self.y <= pos[1] <= self.y + self.height)
 
-    def __str__(self):
-        return f"Объект класса BaseClass: имя={self._name}, защищенное значение={self._protected_value}"
+# Класс для главного меню
+class Menu:
+    def __init__(self, screen):
+        self.screen = screen
+        self.start_button = Button("Начать игру", SCREEN_WIDTH // 2 - 100, 200, 200, 50, BLUE, RED)
+        self.exit_button = Button("Выход", SCREEN_WIDTH // 2 - 100, 300, 200, 50, BLUE, RED)
 
-    def __repr__(self):
-        return f"BaseClass(name='{self._name}')"
+    def display_menu(self):
+        """Отображает главное меню и обрабатывает события."""
+        running = True
+        while running:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    quit()
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    if self.start_button.is_clicked(event.pos):
+                        logging.info("Кнопка 'Начать игру' нажата.")
+                        print("Игровой процесс начинается...")
+                        return "start_game"
+                    elif self.exit_button.is_clicked(event.pos):
+                        logging.info("Кнопка 'Выход' нажата.")
+                        print("Выход из игры.")
+                        pygame.quit()
+                        quit()
 
-# Производный класс
-class DerivedClass(BaseClass):
-    def __init__(self, name):
-        super().__init__(name)  # Вызов конструктора базового класса
+            # Проверка наведения курсора
+            mouse_pos = pygame.mouse.get_pos()
+            self.start_button.check_hover(mouse_pos)
+            self.exit_button.check_hover(mouse_pos)
 
-    def base_method(self):  # Переопределение метода базового класса
-        print(f"Это переопределенный метод из производного класса {self._name}")
+            # Отрисовка меню
+            self.screen.fill(WHITE)
+            self.start_button.draw(self.screen)
+            self.exit_button.draw(self.screen)
+            pygame.display.flip()
 
-    def use_protected_attributes(self):
-        print(f"Доступ к защищенному атрибуту _name: {self._name}")
-        print(f"Доступ к защищенному атрибуту _protected_value: {self._protected_value}")
+# Класс Character
+class Character:
+    def __init__(self, appearance, location):
+        self.appearance = appearance
+        self.x = SCREEN_WIDTH // 2
+        self.y = SCREEN_HEIGHT - 150
+        self.velocity = 0
+        self.location = location
 
-    def __str__(self):
-        return f"Объект класса DerivedClass: имя={self._name}, защищенное значение={self._protected_value}"
+    def draw(self, screen):
+        pygame.draw.rect(screen, BLACK, (self.x, self.y, 30, 30))
 
-    def __repr__(self):
-        return f"DerivedClass(name='{self._name}')"
+    def update(self):
+        self.velocity += 0.5  # Гравитация
+        self.y += self.velocity
+
+        # Ограничение скорости падения
+        if self.velocity > 10:
+            self.velocity = 10
+
+        # Проверка на выход за границы экрана
+        if self.x < 0 or self.x > SCREEN_WIDTH:
+            logging.warning("Персонаж вышел за границы экрана по горизонтали")
+        if self.y < 0 or self.y > SCREEN_HEIGHT:
+            logging.warning("Персонаж вышел за границы экрана по вертикали")
+
+    def check_collision(self):
+        for platform in self.location.platforms[:]:
+            if (self.y + 30 >= platform.y and
+                self.y + 30 <= platform.y + 10 and
+                self.x + 30 > platform.x and
+                self.x < platform.x + 80):
+                platform.interact(self, screen)
 
 # Класс Location
 class Location:
@@ -76,15 +136,20 @@ class Location:
 
     def generate_initial_platforms(self):
         platform_count = 10
-        for i in range(platform_count):
-            x = random.randint(0, SCREEN_WIDTH - 80)
-            y = i * (SCREEN_HEIGHT // platform_count)
-            platform_type = "normal" if random.random() > 0.2 else "broken"
-            self.platforms.append(self.Platform("Платформа", platform_type, x, y))
+        try:
+            for i in range(platform_count):
+                x = random.randint(0, SCREEN_WIDTH - 80)
+                y = i * (SCREEN_HEIGHT // platform_count)
+                platform_type = "normal" if random.random() > 0.2 else "broken"
+                self.platforms.append(self.Platform("Платформа", platform_type, x, y))
 
-        # Добавление начальной платформы под персонажем
-        start_platform = self.Platform("Стартовая платформа", "normal", SCREEN_WIDTH // 2 - 40, SCREEN_HEIGHT - 150)
-        self.platforms.append(start_platform)
+            # Добавление начальной платформы под персонажем
+            start_platform = self.Platform("Стартовая платформа", "normal", SCREEN_WIDTH // 2 - 40, SCREEN_HEIGHT - 150)
+            self.platforms.append(start_platform)
+        except Exception as e:
+            logging.error(f"Ошибка при генерации платформ: {e}")
+        finally:
+            logging.info("Генерация платформ завершена.")
 
     def draw_platforms(self, screen):
         for platform in self.platforms:
@@ -106,11 +171,14 @@ class Location:
                 new_y = character.y - 100
                 new_type = "normal"
                 self.platforms.append(self.Platform("Платформа", new_type, new_x, new_y))
+
+            # Проверка на наличие платформ
+            if not self.platforms:
+                logging.warning("Список платформ пуст")
         except Exception as e:
-            print(f"Произошла ошибка при обновлении платформ: {e}")
-            raise SpecificError("Ошибка при обновлении платформ") from e
+            logging.error(f"Ошибка при обновлении платформ: {e}")
         finally:
-            print("Обновление платформ завершено.")
+            logging.info("Обновление платформ завершено.")
 
     class Platform:
         def __init__(self, appearance, platform_type, x, y):
@@ -137,39 +205,17 @@ class Location:
         def is_off_screen(self):
             return self.x < 0 or self.x > SCREEN_WIDTH or self.y < 0 or self.y > SCREEN_HEIGHT
 
-# Класс Character
-class Character:
-    def __init__(self, appearance, location):
-        self.appearance = appearance
-        self.x = SCREEN_WIDTH // 2
-        self.y = SCREEN_HEIGHT - 150
-        self.velocity = 0
-        self.location = location
-
-    def draw(self, screen):
-        pygame.draw.rect(screen, (0, 0, 0), (self.x, self.y, 30, 30))
-
-    def update(self):
-        try:
-            self.velocity += 0.5  # Гравитация
-            self.y += self.velocity
-
-            # Ограничение скорости падения
-            if self.velocity > 10:
-                self.velocity = 10
-        except Exception as e:
-            print(f"Произошла ошибка при обновлении персонажа: {e}")
-            raise SpecificError("Ошибка при обновлении персонажа") from e
-        finally:
-            print("Обновление персонажа завершено.")
-
-    def check_collision(self):
-        for platform in self.location.platforms[:]:
-            if (self.y + 30 >= platform.y and
-                self.y + 30 <= platform.y + 10 and
-                self.x + 30 > platform.x and
-                self.x < platform.x + 80):
-                platform.interact(self, screen)
+# Функция для отрисовки текста
+def draw_text(screen, text, x, y):
+    """
+    Отрисовывает текст на экране.
+    :param screen: Экран pygame.
+    :param text: Текст для отображения.
+    :param x: Координата X.
+    :param y: Координата Y.
+    """
+    text_surface = font.render(text, True, WHITE)  # Белый цвет текста
+    screen.blit(text_surface, (x, y))
 
 # Функция для сброса игры
 def reset_game(location, hero):
@@ -183,59 +229,62 @@ def reset_game(location, hero):
     hero.velocity = 0
     location.platforms.clear()
     location.generate_initial_platforms()
+    logging.info("Сброс игры завершен.")
 
 # Основной код игры
 if __name__ == "__main__":
-    location = Location()
-    hero = Character("Герой", location)
+    menu = Menu(screen)
+    action = menu.display_menu()  # Показываем главное меню
 
-    running = True
-    game_over = False  # Флаг для состояния "Game Over"
-    clock = pygame.time.Clock()
+    if action == "start_game":
+        location = Location()
+        hero = Character("Герой", location)
 
-    while running:
-        screen.fill((255, 255, 255))  # Белый фон
-        clock.tick(60)
+        running = True
+        game_over = False  # Флаг для состояния "Game Over"
+        clock = pygame.time.Clock()
 
-        # Обработка событий
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-            if game_over and event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
-                # Перезапуск игры при нажатии на пробел
-                reset_game(location, hero)
-                game_over = False
+        while running:
+            screen.fill(WHITE)  # Белый фон
+            clock.tick(60)
 
-        if not game_over:
-            # Управление персонажем
-            keys = pygame.key.get_pressed()
-            if keys[pygame.K_LEFT]:
-                hero.x -= 5
-            if keys[pygame.K_RIGHT]:
-                hero.x += 5
+            # Обработка событий
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+                if game_over and event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
+                    # Перезапуск игры при нажатии на пробел
+                    reset_game(location, hero)
+                    game_over = False
 
-            # Обновление состояния
-            hero.update()
-            hero.check_collision()
-            location.update_platforms(hero)
+            if not game_over:
+                # Управление персонажем
+                keys = pygame.key.get_pressed()
+                if keys[pygame.K_LEFT]:
+                    hero.x -= 5
+                if keys[pygame.K_RIGHT]:
+                    hero.x += 5
 
-            # Проверка на падение игрока
-            if hero.y > SCREEN_HEIGHT:
-                print("Игрок упал за пределы экрана!")  # Отладочное сообщение
-                game_over = True  # Переход в состояние "Game Over"
-        else:
-            # Экран "Game Over"
-            draw_text(screen, "Игра окончена", SCREEN_WIDTH // 2 - 100, SCREEN_HEIGHT // 2 - 50)
-            draw_text(screen, "Нажмите ПРОБЕЛ для перезапуска", SCREEN_WIDTH // 2 - 150, SCREEN_HEIGHT // 2)
+                # Обновление состояния
+                hero.update()
+                hero.check_collision()
+                location.update_platforms(hero)
 
-        # Отрисовка
-        location.draw_platforms(screen)
-        hero.draw(screen)
+                # Проверка на падение игрока
+                if hero.y > SCREEN_HEIGHT:
+                    logging.info("Игрок упал за пределы экрана!")
+                    game_over = True  # Переход в состояние "Game Over"
+            else:
+                # Экран "Game Over"
+                draw_text(screen, "Игра окончена", SCREEN_WIDTH // 2 - 100, SCREEN_HEIGHT // 2 - 50)
+                draw_text(screen, "Нажмите ПРОБЕЛ для перезапуска", SCREEN_WIDTH // 2 - 150, SCREEN_HEIGHT // 2)
 
-        # Отображение координат игрока (для отладки)
-        draw_text(screen, f"Y: {int(hero.y)}", 10, 10)
+            # Отрисовка
+            location.draw_platforms(screen)
+            hero.draw(screen)
+            draw_text(screen, f"Y: {int(hero.y)}", 10, 10)
 
-        # Обновление экрана
-        pygame.display.flip()
+            # Обновление экрана
+            pygame.display.flip()
 
-    pygame.quit()
+        pygame.quit()
