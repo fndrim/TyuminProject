@@ -7,7 +7,7 @@ pygame.init()
 # Настройки экрана
 WIDTH, HEIGHT = 400, 600
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Doodle Jump")
+pygame.display.set_caption("Израиль jAmp")
 
 # Цвета
 WHITE = (255, 255, 255)
@@ -19,7 +19,7 @@ FPS = 60
 GRAVITY = 0.5
 JUMP_STRENGTH = -10
 PLATFORM_WIDTH, PLATFORM_HEIGHT = 80, 10  # Размеры платформы
-PLAYER_SIZE = 60  # Новый размер игрока
+PLAYER_SIZE = 60   # Размер игрока
 
 
 # Класс для игрока
@@ -174,7 +174,7 @@ def main():
 
 
 if __name__ == "__main__":
-    # Инициализация звука
+    # Инициализация звукаа
     pygame.mixer.init()
 
     # Загрузка и воспроизведение музыки
