@@ -19,7 +19,7 @@ FPS = 60
 GRAVITY = 0.5
 JUMP_STRENGTH = -10
 PLATFORM_WIDTH, PLATFORM_HEIGHT = 80, 10  # Размеры платформы
-PLAYER_SIZE = 60   # Размер игрока
+PLAYER_SIZE = 60  # Новый размер игрока
 
 
 # Класс для игрока
@@ -74,26 +74,37 @@ class Player(pygame.sprite.Sprite):
             self.rect.right = WIDTH
 
 
-# Класс для платформ
+# Базовый класс для платформ
 class Platform(pygame.sprite.Sprite):
-    def __init__(self, x, y):
+    def __init__(self, x, y, image_path):
         super().__init__()
         # Загрузка изображения платформы
-        self.image = pygame.image.load("image/static_b.png").convert_alpha()
+        self.image = pygame.image.load(image_path).convert_alpha()
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
 
 
-# Генерация случайных платформ
-def generate_platforms():
-    platforms = pygame.sprite.Group()
-    for i in range(10):
-        x = random.randint(0, WIDTH - PLATFORM_WIDTH)
-        y = i * (HEIGHT // 10)
-        platform = Platform(x, y)
-        platforms.add(platform)
-    return platforms
+# Класс для синей платформы (движущаяся)
+class BluePlatform(Platform):
+    def __init__(self, x, y):
+        super().__init__(x, y, "image/move_b.png")
+        self.speed = 3
+        self.direction = 1  # 1 - вправо, -1 - влево
+
+    def update(self):
+        self.rect.x += self.speed * self.direction
+
+        # Проверка на достижение границ экрана
+        if self.rect.right >= WIDTH or self.rect.left <= 0:
+            self.direction *= -1
+
+
+# Класс для коричневой платформы (разрушаемая)
+class BrownPlatform(Platform):
+    def __init__(self, x, y):
+        super().__init__(x, y, "image/red_b.png")
+        self.should_remove = False  # Флаг для удаления платформы
 
 
 # Функция проверки столкновений игрока с платформами
@@ -101,7 +112,40 @@ def check_collision(player, platforms):
     if player.velocity > 0:  # Проверяем только при падении
         hits = pygame.sprite.spritecollide(player, platforms, False)
         if hits:
-            player.velocity = JUMP_STRENGTH  # Игрок прыгает вверх
+            # Проверяем, есть ли среди столкнувшихся платформ не коричневые
+            non_brown_hits = [hit for hit in hits if not isinstance(hit, BrownPlatform)]
+
+            if non_brown_hits:
+                player.velocity = JUMP_STRENGTH  # Игрок прыгает вверх
+            else:
+                # Если столкнулись только с коричневыми платформами
+                player.velocity = JUMP_STRENGTH
+                for hit in hits:
+                    if isinstance(hit, BrownPlatform):
+                        hit.should_remove = True  # Помечаем платформу на удаление
+
+
+# Генерация случайных платформ
+def generate_platforms():
+    platforms = pygame.sprite.Group()
+
+    for i in range(10):
+        x = random.randint(0, WIDTH - PLATFORM_WIDTH)
+        y = i * (HEIGHT // 10)
+
+        # Случайный выбор типа платформы
+        platform_type = random.choice(["static", "blue", "brown"])
+
+        if platform_type == "static":
+            platform = Platform(x, y, "image/static_b.png")
+        elif platform_type == "blue":
+            platform = BluePlatform(x, y)
+        elif platform_type == "brown":
+            platform = BrownPlatform(x, y)
+
+        platforms.add(platform)
+
+    return platforms
 
 
 # Функция отображения начального экрана
@@ -149,6 +193,17 @@ def main():
         player.update()
         check_collision(player, platforms)
 
+        # Удаление коричневых платформ, помеченных на удаление
+        for platform in platforms:
+            if isinstance(platform, BrownPlatform) and platform.should_remove:
+                platforms.remove(platform)
+                all_sprites.remove(platform)
+
+        # Обновление движущихся платформ
+        for platform in platforms:
+            if isinstance(platform, BluePlatform):
+                platform.update()
+
         # Смещение платформ вниз при подъеме игрока
         if player.rect.top < HEIGHT // 4:
             player.rect.y += abs(player.velocity)
@@ -174,7 +229,7 @@ def main():
 
 
 if __name__ == "__main__":
-    # Инициализация звукаа
+    # Инициализация звука
     pygame.mixer.init()
 
     # Загрузка и воспроизведение музыки
